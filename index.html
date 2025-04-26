@@ -6,13 +6,11 @@
   <title>Topic Tracker</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
-
   <style>
-  .bi {
-  font-size: 1.5rem; /* Adjust icon size */
-  color: #333; /* Set the icon color */
-}
+    .bi {
+      font-size: 1.5rem;
+      color: #333;
+    }
 
     body {
       background: linear-gradient(135deg, #4F8, #F48);
@@ -23,6 +21,7 @@
       padding-top: 50px;
       font-family: 'Poppins', sans-serif;
     }
+
     .container {
       background: #fdfdfd;
       padding: 30px;
@@ -31,6 +30,7 @@
       width: 100%;
       max-width: 650px;
     }
+
     .topic-item {
       display: flex;
       align-items: center;
@@ -39,32 +39,72 @@
       cursor: grab;
       transition: background-color 0.3s;
     }
+
     .topic-item:hover {
       background-color: #f1f1f1;
     }
+
     .topic-text {
       flex-grow: 1;
       margin-left: 12px;
       font-size: 1.05rem;
       word-break: break-word;
     }
+
     .action-icons {
       display: flex;
       gap: 10px;
       margin-left: 10px;
     }
+
     .action-icons i {
       cursor: pointer;
       font-size: 1.2rem;
       color: #555;
       transition: color 0.3s;
     }
+
     .action-icons i:hover {
       color: #007bff;
     }
+
+    .notes-btn {
+      font-size: 1rem;
+      color: #17a2b8;
+      cursor: pointer;
+      transition: color 0.3s;
+    }
+
+    .notes-btn:hover {
+      color: #007bff;
+    }
+
     .sort-btn {
       margin-bottom: 20px;
     }
+
+    .note-textarea {
+      width: 100%;
+      margin-top: 10px;
+      height: 60px;
+      resize: none;
+    }
+
+    .modal-body input[type="text"] {
+  width: 100%;
+  padding: 12px; /* Increase padding for better text spacing */
+  font-size: 1rem; /* Make font size a bit bigger for better readability */
+  border-radius: 8px; /* Round the edges for a smoother look */
+  border: 1px solid #ccc; /* Lighter border */
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Subtle shadow for depth */
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.modal-body input[type="text"]:focus {
+  border-color: #007bff; /* Change border color on focus */
+  box-shadow: 0 0 5px rgba(0, 123, 255, 0.25); /* Add shadow on focus */
+}
+
   </style>
 </head>
 
@@ -78,16 +118,12 @@
     <button class="btn btn-primary" onclick="addTopic()">Add</button>
   </div>
 
-
-
-
-<div class="d-flex justify-content-center gap-4 mb-4" id="counters" style="font-weight: 600;">
-  <span onclick="toggleSort()" title="Sort by Status">🔃</span>
-  <span style="color: #007bff;">Total: 0</span> 
-  <span style="color: #28a745;">Completed: 0</span> 
-  <span style="color: #dc3545;">Incomplete: 0</span>
-</div>
-
+  <div class="d-flex justify-content-center gap-4 mb-4" id="counters" style="font-weight: 600;">
+    <span onclick="toggleSort()" title="Sort by Status">🔃</span>
+    <span style="color: #007bff;">Total: 0</span> 
+    <span style="color: #28a745;">Completed: 0</span> 
+    <span style="color: #dc3545;">Incomplete: 0</span>
+  </div>
 
   <ul class="list-group" id="topicList"></ul>
 </div>
@@ -106,6 +142,25 @@
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
         <button type="button" class="btn btn-primary" onclick="saveEdit()">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Notes Modal -->
+<div class="modal fade" id="notesModal" tabindex="-1" aria-labelledby="notesModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="notesModalLabel">Add Notes</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <textarea id="notesInput" class="note-textarea" placeholder="Enter your notes here..."></textarea>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" onclick="saveNotes()">Save</button>
       </div>
     </div>
   </div>
@@ -140,6 +195,7 @@
   let sortCompletedFirst = false;
   let currentEditIndex = null;
   let currentDeleteIndex = null;
+  let currentNotesIndex = null;
 
   window.onload = function() {
     const savedTopics = localStorage.getItem('topics');
@@ -168,7 +224,7 @@
     const input = document.getElementById('topicInput');
     const topicName = input.value.trim();
     if (topicName !== '') {
-      topics.push({ name: topicName, completed: false });
+      topics.push({ name: topicName, completed: false, notes: '' });
       saveAndRender();
       input.value = '';
     }
@@ -205,6 +261,21 @@
     bootstrap.Modal.getInstance(document.getElementById('deleteModal')).hide();
   }
 
+  function openNotesModal(index) {
+    currentNotesIndex = index;
+    document.getElementById('notesInput').value = topics[index].notes;
+    new bootstrap.Modal(document.getElementById('notesModal')).show();
+  }
+
+  function saveNotes() {
+    const notes = document.getElementById('notesInput').value.trim();
+    if (notes !== '') {
+      topics[currentNotesIndex].notes = notes;
+      saveAndRender();
+      bootstrap.Modal.getInstance(document.getElementById('notesModal')).hide();
+    }
+  }
+
   function toggleSort() {
     sortCompletedFirst = !sortCompletedFirst;
     topics.sort((a, b) => sortCompletedFirst ? (b.completed - a.completed) : (a.completed - b.completed));
@@ -227,13 +298,12 @@
     const total = topics.length;
     const completed = topics.filter(t => t.completed).length;
     const incomplete = total - completed;
-document.getElementById('counters').innerHTML = `
-  <span onclick="toggleSort()" title="Sort by Status">🔃</span>
-  <span style="color: #007bff;">Total: ${total}</span> 
-  <span style="color: #28a745;">Completed: ${completed}</span> 
-  <span style="color: #dc3545;">Incomplete: ${incomplete}</span>
-`;
-
+    document.getElementById('counters').innerHTML = `
+      <span onclick="toggleSort()" title="Sort by Status">🔃</span>
+      <span style="color: #007bff;">Total: ${total}</span> 
+      <span style="color: #28a745;">Completed: ${completed}</span> 
+      <span style="color: #dc3545;">Incomplete: ${incomplete}</span>
+    `;
 
     topics.forEach((topic, index) => {
       const li = document.createElement('li');
@@ -264,7 +334,12 @@ document.getElementById('counters').innerHTML = `
       deleteIcon.className = 'bi bi-trash';
       deleteIcon.onclick = () => openDeleteModal(index);
 
+      const notesIcon = document.createElement('i');
+      notesIcon.className = 'bi bi-file-earmark-text';
+      notesIcon.onclick = () => openNotesModal(index);
+
       actions.appendChild(editIcon);
+      actions.appendChild(notesIcon);
       actions.appendChild(deleteIcon);
 
       li.appendChild(checkbox);
